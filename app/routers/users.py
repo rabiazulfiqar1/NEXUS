@@ -32,7 +32,7 @@ async def create_profile_from_resume(user : dict = Depends(get_current_user), fi
     return {"message": "Resume uploaded successfully"}
     
 
-@router.post("/profile/manual")
+@router.post("/profile/manual", status_code=status.HTTP_201_CREATED)
 async def create_profile_manual(profile: UserCreate, user: dict = Depends(get_current_user)):
     data = profile.model_dump()
     data["id"] = user.id

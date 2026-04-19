@@ -1,7 +1,8 @@
 from supabase import create_client
 from app.schemas.job import JobCreate
-from app.core.config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+from app.core.config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, MATCH_COUNT, MATCH_THRESHOLD
 from app.services.embedding import generate_embedding
+from fastapi import HTTPException, status
 
 client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
@@ -33,3 +34,20 @@ def add_user_profile(user_profile: dict):
 def add_profile_embedding(text:str, user_id):
     embedding = generate_embedding(text)
     client.table("user_profiles").update({"embedding": embedding, "is_embed": True}).eq("id", user_id).execute()
+
+def get_jobs(user_id):
+    result = client.table("user_profiles").select("embedding").eq("id", user_id).execute()
+    if not result.data or not result.data[0]["embedding"]:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User profile or embedding not found"
+        )
+    embedding = result.data[0]["embedding"]
+    jobs = client.rpc("get_similar_jobs", {
+        "user_embedding": embedding,
+        "match_threshold": MATCH_THRESHOLD,
+        "match_count": MATCH_COUNT
+    }).execute()
+    if not jobs.data:
+        return []
+    return jobs.data

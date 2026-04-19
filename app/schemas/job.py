@@ -15,7 +15,7 @@ class JobBase(BaseModel):
 class JobCreate(JobBase):
     pass
 
-class JobResponse(BaseModel):
+class JobResponse(JobBase):
     model_config = ConfigDict(from_attributes=True)
 
     job_id: UUID

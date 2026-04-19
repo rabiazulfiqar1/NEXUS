@@ -2,6 +2,7 @@ from supabase import create_client
 from app.schemas.job import JobCreate
 from app.core.config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 from app.services.embedding import generate_embedding
+
 client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 def add_jobs(job_list: list[JobCreate]):
@@ -20,4 +21,15 @@ def embed_jobs(job_list: list[JobCreate]):
             .eq("url", job.url)\
             .execute()
         
-# client.table("job_listings").select("id, title, description").is_("embedding", "null").execute()
+def add_resume(resume_text: str, user_id):
+    client.table("user_profiles").upsert({
+        "id": user_id,
+        "resume_text": resume_text
+    }).execute()
+
+def add_user_profile(user_profile: dict):
+    client.table("user_profiles").insert(user_profile).execute()
+
+def add_profile_embedding(text:str, user_id):
+    embedding = generate_embedding(text)
+    client.table("user_profiles").update({"embedding": embedding, "is_embed": True}).eq("id", user_id).execute()

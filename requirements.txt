@@ -1,3 +1,6 @@
 fastapi
 sentence-transformers
 supabase
+pdfplumber
+uvicorn
+python-multipart

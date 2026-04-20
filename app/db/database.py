@@ -7,6 +7,8 @@ from fastapi import HTTPException, status
 client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 def add_jobs(job_list: list[JobCreate]):
+    if not job_list:
+        return
     jobs = [job.model_dump() for job in job_list]
     for job in jobs:
         if job.get("posted_at"):
@@ -14,6 +16,8 @@ def add_jobs(job_list: list[JobCreate]):
     client.table("job_listings").upsert(jobs, on_conflict="url").execute()
 
 def embed_jobs(job_list: list[JobCreate]):
+    if not job_list:
+        return
     for job in job_list:
         text = f"{job.description} {job.title}"
         embedding = generate_embedding(text)

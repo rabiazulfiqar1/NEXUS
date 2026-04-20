@@ -55,3 +55,14 @@ def get_jobs(user_id):
     if not jobs.data:
         return []
     return jobs.data
+
+def get_user_profile_data(user_id) -> dict:
+    result = client.table("user_profiles").select(
+        "id, resume_text, skills, degree, graduation_year, experience"
+    ).eq("id", user_id).execute()
+    if not result.data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User profile not found"
+        )
+    return result.data[0]

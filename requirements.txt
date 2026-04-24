@@ -6,3 +6,5 @@ uvicorn
 python-multipart
 python-dotenv
 openai
+requests
+pytest

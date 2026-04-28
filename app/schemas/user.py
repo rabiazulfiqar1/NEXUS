@@ -5,10 +5,14 @@ from uuid import UUID
 
 class UserBase(BaseModel):
     full_name: str
+    email: str | None = None
+    linkedin_url: str | None = None
+    github_url: str | None = None
     skills: List[str] = Field(default_factory=list)
     degree: str | None
     graduation_year: int | None
     experience: List[dict] = Field(default_factory=list)
+    projects: List[dict] = Field(default_factory=list)
 
 class UserCreate(UserBase):
     pass

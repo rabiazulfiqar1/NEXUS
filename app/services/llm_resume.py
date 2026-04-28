@@ -189,18 +189,44 @@ def _call_llm(prompt: str) -> tuple[str, str]:
     )
 
 
-def enhance_resume(resume_text: str, target_role: str) -> dict:
+def enhance_resume(resume_text: str, target_role: str, profile: dict = None) -> dict:
+    # Extract user data from profile
+    user_info = ""
+    if profile:
+        degree = profile.get("degree", "")
+        graduation_year = profile.get("graduation_year", "")
+        experience = profile.get("experience", [])
+        projects = profile.get("projects", [])
+        
+        user_info = f"""
+User Profile Data:
+- Degree: {degree}
+- Graduation Year: {graduation_year}
+- Experience: {experience}
+- Projects: {projects}
+"""
+    
     prompt = f"""
-You are a resume optimization assistant.
-Target role: {target_role}
-Resume text:
+You are a resume optimization assistant for the target role: {target_role}
+
+{user_info}
+
+Original Resume Text:
 {resume_text}
 
+Instructions:
+1. Use the user's actual degree, graduation year, experience, and projects from the profile data
+2. Enhance the resume specifically for the {target_role} role
+3. Change any "CORE COMPETENCIES & SKILLS" sections to just "SKILLS"
+4. Provide improved bullet points that highlight relevant achievements
+5. Identify missing keywords that are important for {target_role} roles
+6. Suggest specific next steps to strengthen the resume
+
 Return strict JSON with keys:
-- summary (string)
-- improved_bullets (array of strings)
-- missing_keywords (array of strings)
-- next_steps (array of strings)
+- summary (string) - Professional summary optimized for {target_role}
+- improved_bullets (array of strings) - Enhanced bullet points using user's actual experience
+- missing_keywords (array of strings) - Key skills missing for {target_role}
+- next_steps (array of strings) - Actionable improvement suggestions
 """
     mode, llm_text = _call_llm(prompt)
     if mode == "mock":

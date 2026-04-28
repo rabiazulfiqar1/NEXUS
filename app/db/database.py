@@ -28,19 +28,19 @@ def embed_jobs(job_list: list[JobCreate]):
         
 def add_resume(resume_text: str, user_id):
     client.table("user_profiles").upsert({
-        "id": user_id,
+        "id": str(user_id),
         "resume_text": resume_text
     }).execute()
 
 def add_user_profile(user_profile: dict):
-    client.table("user_profiles").insert(user_profile).execute()
+    client.table("user_profiles").upsert(user_profile).execute()
 
 def add_profile_embedding(text:str, user_id):
     embedding = generate_embedding(text)
-    client.table("user_profiles").update({"embedding": embedding, "is_embed": True}).eq("id", user_id).execute()
+    client.table("user_profiles").update({"embedding": embedding, "is_embed": True}).eq("id", str(user_id)).execute()
 
 def get_jobs(user_id):
-    result = client.table("user_profiles").select("embedding").eq("id", user_id).execute()
+    result = client.table("user_profiles").select("embedding").eq("id", str(user_id)).execute()
     if not result.data or not result.data[0]["embedding"]:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -57,12 +57,21 @@ def get_jobs(user_id):
     return jobs.data
 
 def get_user_profile_data(user_id) -> dict:
-    result = client.table("user_profiles").select(
-        "id, resume_text, skills, degree, graduation_year, experience"
-    ).eq("id", user_id).execute()
-    if not result.data:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User profile not found"
-        )
-    return result.data[0]
+    # First try to get all columns to see what exists
+    try:
+        result = client.table("user_profiles").select("*").eq("id", str(user_id)).execute()
+        if not result.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User profile not found"
+            )
+        return result.data[0]
+    except Exception as e:
+        # If that fails, try minimal columns
+        result = client.table("user_profiles").select("id").eq("id", str(user_id)).execute()
+        if not result.data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User profile not found"
+            )
+        return result.data[0]

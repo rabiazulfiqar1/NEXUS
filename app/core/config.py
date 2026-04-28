@@ -6,6 +6,7 @@ load_dotenv()
 JOB_SEARCH_API = os.getenv("JOB_SEARCH_API")
 SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL")
+GROK_API_KEY = os.getenv("GROQ_API_KEY")
 
 CRON_QUERIES = [
     "software engineering Jobs in Pakistan",
@@ -22,4 +23,5 @@ ALLOWED_FILE_TYPES = ['application/pdf']
 
 MATCH_THRESHOLD = 0.4
 MATCH_COUNT=5
+
 

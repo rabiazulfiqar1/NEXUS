@@ -4,3 +4,4 @@ supabase
 pdfplumber
 uvicorn
 python-multipart
+groq

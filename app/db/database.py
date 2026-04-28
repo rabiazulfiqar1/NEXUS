@@ -51,3 +51,14 @@ def get_jobs(user_id):
     if not jobs.data:
         return []
     return jobs.data
+
+def get_similarity_score(user_id, job_id):
+    response = client.table("user_profiles").select("embedding").eq("id", user_id).execute()
+    user_embedding= response.data[0]["embedding"]
+    sim_score = client.rpc("get_similarity_score", {
+        "user_embedding": user_embedding,
+        "job_id": job_id
+    }).execute()
+    if sim_score:
+        return sim_score
+    return None

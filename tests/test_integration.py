@@ -34,14 +34,14 @@ def test_api_health():
     assert response.status_code in [200, 404]
 
 @pytest.mark.skipif(not os.getenv("GROQ_API_KEY"), reason="GROQ_API_KEY not set")
-def test_groq_enhance_resume_live():
+def test_groq_enhance_resume_live(monkeypatch):
     """
     Live integration test for Groq Resume Enhancement.
     Requires GROQ_API_KEY and LLM_PROVIDER=groq in environment.
     """
     # Force provider to groq for this test if key is present
-    config.LLM_PROVIDER = "groq"
-    config.LLM_USE_MOCK = False
+    monkeypatch.setattr("app.services.llm_resume.LLM_PROVIDER", "groq")
+    monkeypatch.setattr("app.services.llm_resume.LLM_USE_MOCK", False)
     
     payload = {
         "resume_text": "Experienced Python developer with 3 years of FastAPI and SQL experience.",
@@ -57,30 +57,24 @@ def test_groq_enhance_resume_live():
     assert "summary" in data
 
 @pytest.mark.skipif(not os.getenv("GROQ_API_KEY"), reason="GROQ_API_KEY not set")
-def test_groq_generate_cv_live():
+def test_groq_generate_cv_live(monkeypatch):
     """
     Live integration test for Groq CV Generation.
     Requires GROQ_API_KEY and LLM_PROVIDER=groq in environment.
     """
-    config.LLM_PROVIDER = "groq"
-    config.LLM_USE_MOCK = False
+    monkeypatch.setattr("app.services.llm_resume.LLM_PROVIDER", "groq")
+    monkeypatch.setattr("app.services.llm_resume.LLM_USE_MOCK", False)
     
     payload = {
         "target_role": "Backend Intern"
     }
     
-    # This endpoint likely pulls from DB based on current user session
-    # For testing, we might need a test user or mock the DB helper.
-    # But let's see if the router allows passing profile_data or if it's strictly DB.
     response = client.post("/api/v1/cv/generate", json=payload)
-    
-    # If not authenticated, this might fail with 401. 
-    # Let's check how the router is implemented.
-    assert response.status_code in [200, 401]
+    assert response.status_code == 200
 
-def test_mock_mode_fallback():
+def test_mock_mode_fallback(monkeypatch):
     """Verify that setting mock mode works as expected."""
-    config.LLM_USE_MOCK = True
+    monkeypatch.setattr("app.services.llm_resume.LLM_USE_MOCK", True)
     
     payload = {
         "resume_text": "Some text",

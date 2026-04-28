@@ -103,7 +103,7 @@ const ResultsView: React.FC<ResultsViewProps> = ({ data, profileOverride, isCV =
       <section className="glass-card" style={{ padding: '3rem 1rem', textAlign: 'center', position: 'relative' }}>
         <div style={{ position: 'absolute', top: '1.5rem', left: '1.5rem' }}>
           <button onClick={exportToPDF} className="btn-primary" style={{ background: '#000', color: '#fff', border: 'none' }}>
-            <Download size={18} /> Download ATS {isCV ? 'CV' : 'Resume'} PDF (B&W)
+            <Download size={18} /> Download ATS {isCV ? 'CV' : 'Resume'} PDF
           </button>
         </div>
         

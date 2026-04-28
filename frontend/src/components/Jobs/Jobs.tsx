@@ -96,7 +96,7 @@ const JobsView: React.FC = () => {
           <Briefcase size={24} />
           Job Recommendations
         </h2>
-        <button onClick={fetchJobs} className="btn-secondary" style={{ border: '1px solid var(--border-glass)', background: 'transparent' }}>
+        <button onClick={fetchJobs} className="btn-secondary" style={{ border: '0px solid var(--border-glass)', background: 'transparent' , color: 'white'}}>
           <RefreshCw size={16} /> Refresh
         </button>
       </div>

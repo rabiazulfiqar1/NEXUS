@@ -9,7 +9,7 @@ from fastapi import HTTPException
 
 supabase_client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-groq_client = Groq(GROQ_API_KEY)
+groq_client = Groq(api_key=GROQ_API_KEY)
 
 def extract_text(file_path):
     text = ""

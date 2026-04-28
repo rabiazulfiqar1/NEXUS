@@ -58,7 +58,8 @@ htmlcov/
 Thumbs.db
 
 # Vulnerable testing files
-test.py
+user_test.py
 
 # Docs for reference
 *.pdf
+SETUP.md

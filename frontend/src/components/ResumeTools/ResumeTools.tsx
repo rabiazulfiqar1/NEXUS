@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Loader2, Search, LogOut, User, Plus, X } from 'lucide-react';
-import { resumeApi, ResumeEnhanceResponse } from '../../services/api';
+import { Sparkles, Loader2, Search, LogOut, User, Plus, X, FileText, Briefcase, UserCircle } from 'lucide-react';
+import { resumeApi, ResumeEnhanceResponse, CVGenerateResponse } from '../../services/api';
 import ResultsView from './ResultsView';
 import ResumeUpload from './ResumeUpload';
+import JobsView from '../Jobs/Jobs';
 import { supabase } from '../../services/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ResumeTools: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'resume' | 'cv' | 'jobs'>('resume');
   const [targetRole, setTargetRole] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<ResumeEnhanceResponse | null>(null);
+  const [result, setResult] = useState<ResumeEnhanceResponse | CVGenerateResponse | null>(null);
   const [error, setError] = useState('');
   
   // Profile state for dynamic editing
@@ -22,8 +24,7 @@ const ResumeTools: React.FC = () => {
   });
   const [newSkill, setNewSkill] = useState('');
 
-  const [syncing, setSyncing] = useState(false);
-
+  
   useEffect(() => {
     resumeApi.getProfile().then(data => {
       if (data) setProfile(data);
@@ -34,11 +35,9 @@ const ResumeTools: React.FC = () => {
   useEffect(() => {
     if (profile.full_name || profile.skills.length > 0) {
       const timeoutId = setTimeout(async () => {
-        setSyncing(true);
         try {
           await resumeApi.saveProfile(profile);
         } catch (e) {}
-        setSyncing(false);
       }, 1000);
       return () => clearTimeout(timeoutId);
     }
@@ -56,8 +55,41 @@ const ResumeTools: React.FC = () => {
       const data = await resumeApi.enhance({ target_role: targetRole });
       setResult(data);
     } catch (err: any) {
-      const msg = err.response?.data?.detail || err.message || 'Failed to enhance resume.';
-      setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      if (err.response?.status === 401) {
+        setError('Authentication required. Please log in to enhance your resume.');
+      } else if (err.response?.status === 429) {
+        setError('Rate limit exceeded. Please try again later.');
+      } else if (err.response?.status === 404) {
+        setError('No profile found. Please upload your resume first.');
+      } else {
+        const msg = err.response?.data?.detail || err.message || 'Failed to enhance resume.';
+        setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateCV = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetRole) return;
+
+    setLoading(true);
+    setError('');
+    try {
+      const data = await resumeApi.generateCV({ target_role: targetRole });
+      setResult(data);
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        setError('Authentication required. Please log in to generate your CV.');
+      } else if (err.response?.status === 429) {
+        setError('Rate limit exceeded. Please try again later.');
+      } else if (err.response?.status === 404) {
+        setError('No profile found. Please upload your resume first.');
+      } else {
+        const msg = err.response?.data?.detail || err.message || 'Failed to generate CV.';
+        setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      }
     } finally {
       setLoading(false);
     }
@@ -82,11 +114,36 @@ const ResumeTools: React.FC = () => {
         </button>
       </div>
 
-      <header style={{ marginBottom: '3rem', textAlign: 'center' }}>
+      <header style={{ marginBottom: '2rem', textAlign: 'center' }}>
         <h1 className="section-title">NEXUS AI Accelerator</h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto' }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto', marginBottom: '2rem' }}>
           Real-time resume optimization for target roles.
         </p>
+        
+        {/* Tab Navigation */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginBottom: '2rem' }}>
+          <button
+            onClick={() => setActiveTab('resume')}
+            className={`tab-button ${activeTab === 'resume' ? 'active' : ''}`}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: '8px', border: '1px solid var(--border-glass)', background: activeTab === 'resume' ? 'var(--primary)' : 'transparent', color: activeTab === 'resume' ? 'white' : 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.3s ease' }}
+          >
+            <FileText size={18} /> Enhance Resume
+          </button>
+          <button
+            onClick={() => setActiveTab('cv')}
+            className={`tab-button ${activeTab === 'cv' ? 'active' : ''}`}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: '8px', border: '1px solid var(--border-glass)', background: activeTab === 'cv' ? 'var(--primary)' : 'transparent', color: activeTab === 'cv' ? 'white' : 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.3s ease' }}
+          >
+            <UserCircle size={18} /> Generate CV
+          </button>
+          <button
+            onClick={() => setActiveTab('jobs')}
+            className={`tab-button ${activeTab === 'jobs' ? 'active' : ''}`}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: '8px', border: '1px solid var(--border-glass)', background: activeTab === 'jobs' ? 'var(--primary)' : 'transparent', color: activeTab === 'jobs' ? 'white' : 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.3s ease' }}
+          >
+            <Briefcase size={18} /> Matching Jobs
+          </button>
+        </div>
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '2rem', marginBottom: '3rem' }}>
@@ -155,43 +212,80 @@ const ResumeTools: React.FC = () => {
         </aside>
 
         <section>
-          <div className="glass-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
-            <form onSubmit={handleEnhance} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                  Target Career Goal
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-                  <input
-                    type="text"
-                    className="input-field"
-                    placeholder="e.g., Unity Game Developer..."
-                    value={targetRole}
-                    onChange={(e) => setTargetRole(e.target.value)}
-                    style={{ paddingLeft: '3rem' }}
-                  />
-                </div>
+          {activeTab === 'resume' && (
+            <>
+              <div className="glass-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+                <form onSubmit={handleEnhance} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                      Target Career Goal
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="e.g., Unity Game Developer..."
+                        value={targetRole}
+                        onChange={(e) => setTargetRole(e.target.value)}
+                        style={{ paddingLeft: '3rem' }}
+                      />
+                    </div>
+                  </div>
+                  <button type="submit" className="btn-primary" disabled={loading || !targetRole} style={{ height: '48px' }}>
+                    {loading ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
+                    {loading ? 'Analyzing...' : 'Enhance Resume'}
+                  </button>
+                </form>
               </div>
-              <button type="submit" className="btn-primary" disabled={loading || !targetRole} style={{ height: '48px' }}>
-                {loading ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />}
-                {loading ? 'Analyzing...' : 'Generate Resume'}
-              </button>
-            </form>
-          </div>
+            </>
+          )}
+
+          {activeTab === 'cv' && (
+            <>
+              <div className="glass-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+                <form onSubmit={handleGenerateCV} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                      Target Career Goal
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                      <input
+                        type="text"
+                        className="input-field"
+                        placeholder="e.g., Senior Software Engineer..."
+                        value={targetRole}
+                        onChange={(e) => setTargetRole(e.target.value)}
+                        style={{ paddingLeft: '3rem' }}
+                      />
+                    </div>
+                  </div>
+                  <button type="submit" className="btn-primary" disabled={loading || !targetRole} style={{ height: '48px' }}>
+                    {loading ? <Loader2 className="animate-spin" size={20} /> : <UserCircle size={20} />}
+                    {loading ? 'Generating...' : 'Generate CV'}
+                  </button>
+                </form>
+              </div>
+            </>
+          )}
+
+          {activeTab === 'jobs' && (
+            <JobsView />
+          )}
 
           <AnimatePresence>
-            {result && (
+            {result && activeTab !== 'jobs' && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
               >
-                <ResultsView data={result} profileOverride={profile} />
+                <ResultsView data={result} profileOverride={profile} isCV={activeTab === 'cv'} />
               </motion.div>
             )}
           </AnimatePresence>
           
-          {error && (
+          {error && activeTab !== 'jobs' && (
             <p style={{ color: '#ef4444', textAlign: 'center', marginTop: '1rem' }}>{error}</p>
           )}
         </section>

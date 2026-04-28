@@ -3,6 +3,8 @@ from app.core.config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, ALLOWED_FIL
 from supabase import create_client
 from app.core.dependencies import get_current_user
 from app.schemas.user import UserCreate
+from app.db.async_client import get_async_client
+from supabase._async.client import AsyncClient
 import tempfile
 import os
 from app.services.resume_parser import extract_text, build_user_embedding_text
@@ -10,6 +12,9 @@ from app.db.database import add_resume, add_user_profile, add_profile_embedding
 import asyncio
 
 client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+async def _get_async_client() -> AsyncClient:
+    return await get_async_client()
 
 router = APIRouter()
 
@@ -53,3 +58,22 @@ async def create_profile_manual(
         add_profile_embedding(profile_text, user.id),
     )
     return {"message": "User profile created successfully"}
+@router.delete("/profile/resume")
+async def delete_profile_resume(
+    user: dict = Depends(get_current_user)
+):
+    async_client = await _get_async_client()
+    await async_client.table("user_profiles").update({
+        "resume_text": None
+    }).eq("id", user.id).execute()
+    return {"message": "Resume deleted successfully"}
+
+@router.get("/profile")
+async def get_user_profile(
+    user: dict = Depends(get_current_user)
+):
+    async_client = await _get_async_client()
+    result = await async_client.table("user_profiles").select("*").eq("id", user.id).execute()
+    if result.data:
+        return result.data[0]
+    return {}

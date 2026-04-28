@@ -68,6 +68,14 @@ export const resumeApi = {
     const response = await api.post('/cv/generate', payload);
     return response.data;
   },
+  getJobs: async (): Promise<any[]> => {
+    const response = await api.get('/jobs');
+    return response.data;
+  },
+  getTargetedJobs: async (targetRole: string): Promise<any[]> => {
+    const response = await api.get(`/jobs?target_role=${encodeURIComponent(targetRole)}`);
+    return response.data;
+  },
   upload: async (file: File): Promise<any> => {
     const formData = new FormData();
     formData.append('file', file);

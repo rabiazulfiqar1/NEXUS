@@ -15,11 +15,7 @@ interface Job {
   similarity: number;
 }
 
-interface JobsProps {
-  targetRole?: string;
-}
-
-const Jobs: React.FC<JobsProps> = ({ targetRole }) => {
+const JobsView: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,18 +24,17 @@ const Jobs: React.FC<JobsProps> = ({ targetRole }) => {
     try {
       setLoading(true);
       setError(null);
-      let jobsData;
-      
-      // Use targeted jobs if target role is provided
-      if (targetRole && targetRole.trim()) {
-        jobsData = await resumeApi.getTargetedJobs(targetRole);
-      } else {
-        jobsData = await resumeApi.getJobs();
-      }
-      
+      const jobsData = await resumeApi.getJobs();
       setJobs(jobsData || []);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to fetch jobs');
+      const errorMessage = err.response?.data?.detail || 'Failed to fetch jobs';
+      if (err.response?.status === 401) {
+        setError('Authentication required. Please log in to view job recommendations.');
+      } else if (err.response?.status === 404) {
+        setError('No profile found. Please upload your resume first.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -47,7 +42,7 @@ const Jobs: React.FC<JobsProps> = ({ targetRole }) => {
 
   useEffect(() => {
     fetchJobs();
-  }, [targetRole]);
+  }, []);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -203,4 +198,4 @@ const Jobs: React.FC<JobsProps> = ({ targetRole }) => {
   );
 };
 
-export default Jobs;
+export default JobsView;

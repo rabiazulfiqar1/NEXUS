@@ -25,7 +25,15 @@ const ResumeUpload: React.FC = () => {
       setSuccess(true);
       setFile(null);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Upload failed. Check your token.');
+      if (err.response?.status === 401) {
+        setError('Authentication required. Please log in to upload your resume.');
+      } else if (err.response?.status === 413) {
+        setError('File too large. Please choose a smaller PDF file.');
+      } else if (err.response?.status === 400) {
+        setError('Invalid file format. Please upload a PDF file.');
+      } else {
+        setError(err.response?.data?.detail || 'Upload failed. Please try again.');
+      }
     } finally {
       setUploading(false);
     }

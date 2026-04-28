@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { Download, AlertCircle, TrendingUp, ChevronDown, ChevronUp } from 'lucide-react';
-import { ResumeEnhanceResponse } from '../../services/api';
+import { ResumeEnhanceResponse, CVGenerateResponse } from '../../services/api';
 import ResumePaper from './ResumePaper';
 import jsPDF from 'jspdf';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface ResultsViewProps {
-  data: ResumeEnhanceResponse;
+  data: ResumeEnhanceResponse | CVGenerateResponse;
   profileOverride: any;
+  isCV?: boolean;
 }
 
-const ResultsView: React.FC<ResultsViewProps> = ({ data, profileOverride }) => {
+const ResultsView: React.FC<ResultsViewProps> = ({ data, profileOverride, isCV = false }) => {
   const [showAnalysis, setShowAnalysis] = useState(false);
 
   const exportToPDF = () => {
@@ -53,48 +54,48 @@ const ResultsView: React.FC<ResultsViewProps> = ({ data, profileOverride }) => {
       y += 6;
     };
 
-    // Professional Summary
+    // Professional Summary / CV Professional Summary
     addSectionHeader('Professional Summary');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    const summaryLines = doc.splitTextToSize(data.summary, pageWidth - 2 * margin);
+    const summaryText = isCV ? (data as CVGenerateResponse).professional_summary : (data as ResumeEnhanceResponse).summary;
+    const summaryLines = doc.splitTextToSize(summaryText, pageWidth - 2 * margin);
     doc.text(summaryLines, margin, y);
     y += summaryLines.length * 4.5 + 8;
 
     // Skills
     addSectionHeader('Skills');
-    const skillsText = (profileOverride?.skills || []).join('  •  ');
+    const skillsText = isCV ? (data as CVGenerateResponse).skills.join('  •  ') : (profileOverride?.skills || []).join('  •  ');
     doc.setFont('helvetica', 'bold');
     const skillLines = doc.splitTextToSize(skillsText, pageWidth - 2 * margin);
     doc.text(skillLines, margin, y);
     y += skillLines.length * 5 + 8;
 
-    // Experience
+    // Experience / Experience Bullets
     addSectionHeader('Professional Experience');
     doc.setFont('helvetica', 'normal');
-    data.improved_bullets.forEach((bullet) => {
+    const bullets = isCV ? (data as CVGenerateResponse).experience_bullets : (data as ResumeEnhanceResponse).improved_bullets;
+    bullets.forEach((bullet) => {
       const lines = doc.splitTextToSize(`•  ${bullet}`, pageWidth - 2 * margin - 5);
       if (y + lines.length * 5 > 280) { doc.addPage(); y = 20; }
       doc.text(lines, margin, y);
       y += lines.length * 4.5 + 2;
     });
     
-    // Original Sections (Projects/Education)
-    if (profileOverride?.projects?.length > 0) {
+    // Projects (CV only)
+    if (isCV && (data as CVGenerateResponse).projects.length > 0) {
       y += 5;
       addSectionHeader('Selected Projects');
-      profileOverride.projects.forEach((proj: any) => {
-        doc.setFont('helvetica', 'bold');
-        doc.text(proj.title || 'Project', margin, y);
-        y += 5;
+      (data as CVGenerateResponse).projects.forEach((proj: string) => {
         doc.setFont('helvetica', 'normal');
-        const projLines = doc.splitTextToSize(proj.description || '', pageWidth - 2 * margin);
+        const projLines = doc.splitTextToSize(`•  ${proj}`, pageWidth - 2 * margin - 5);
+        if (y + projLines.length * 5 > 280) { doc.addPage(); y = 20; }
         doc.text(projLines, margin, y);
-        y += projLines.length * 4.5 + 4;
+        y += projLines.length * 4.5 + 2;
       });
     }
 
-    doc.save(`${name.replace(/\s+/g, '_')}_Resume.pdf`);
+    doc.save(`${name.replace(/\s+/g, '_')}_${isCV ? 'CV' : 'Resume'}.pdf`);
   };
 
   return (
@@ -102,7 +103,7 @@ const ResultsView: React.FC<ResultsViewProps> = ({ data, profileOverride }) => {
       <section className="glass-card" style={{ padding: '3rem 1rem', textAlign: 'center', position: 'relative' }}>
         <div style={{ position: 'absolute', top: '1.5rem', left: '1.5rem' }}>
           <button onClick={exportToPDF} className="btn-primary" style={{ background: '#000', color: '#fff', border: 'none' }}>
-            <Download size={18} /> Download ATS PDF (B&W)
+            <Download size={18} /> Download ATS {isCV ? 'CV' : 'Resume'} PDF (B&W)
           </button>
         </div>
         
@@ -112,9 +113,9 @@ const ResultsView: React.FC<ResultsViewProps> = ({ data, profileOverride }) => {
           linkedin={profileOverride?.linkedin_url}
           github={profileOverride?.github_url}
           role={data.target_role}
-          summary={data.summary}
-          bullets={data.improved_bullets}
-          skills={profileOverride?.skills}
+          summary={isCV ? (data as CVGenerateResponse).professional_summary : (data as ResumeEnhanceResponse).summary}
+          bullets={isCV ? (data as CVGenerateResponse).experience_bullets : (data as ResumeEnhanceResponse).improved_bullets}
+          skills={isCV ? (data as CVGenerateResponse).skills : (profileOverride?.skills || [])}
         />
       </section>
 
@@ -129,7 +130,7 @@ const ResultsView: React.FC<ResultsViewProps> = ({ data, profileOverride }) => {
       </div>
 
       <AnimatePresence>
-        {showAnalysis && (
+        {showAnalysis && !isCV && (
           <motion.div 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -142,7 +143,7 @@ const ResultsView: React.FC<ResultsViewProps> = ({ data, profileOverride }) => {
                 <AlertCircle size={20} color="#f59e0b" /> Optimization Gaps
               </h4>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                {data.missing_keywords.map((kw, idx) => (
+                {(data as ResumeEnhanceResponse).missing_keywords.map((kw, idx) => (
                   <span key={idx} style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#fbbf24', padding: '0.4rem 0.8rem', borderRadius: '2rem', fontSize: '0.85rem', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
                     {kw}
                   </span>
@@ -155,7 +156,7 @@ const ResultsView: React.FC<ResultsViewProps> = ({ data, profileOverride }) => {
                 <TrendingUp size={20} color="#22d3ee" /> Next Steps
               </h4>
               <ul style={{ listStyle: 'none', display: 'grid', gap: '0.75rem' }}>
-                {data.next_steps.map((step, idx) => (
+                {(data as ResumeEnhanceResponse).next_steps.map((step, idx) => (
                   <li key={idx} style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.5rem' }}>
                     <span style={{ color: '#22d3ee' }}>→</span> {step}
                   </li>

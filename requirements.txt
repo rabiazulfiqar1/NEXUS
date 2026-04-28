@@ -5,3 +5,7 @@ pdfplumber
 uvicorn
 python-multipart
 groq
+python-dotenv
+openai
+requests
+pytest

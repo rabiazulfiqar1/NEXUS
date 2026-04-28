@@ -9,6 +9,7 @@ __pycache__/
 
 # Virtual environments
 .venv/
+myenv/
 venv/
 env/
 ENV/
@@ -55,6 +56,3 @@ htmlcov/
 # OS files
 .DS_Store
 Thumbs.db
-
-#Testing
-user_test.py

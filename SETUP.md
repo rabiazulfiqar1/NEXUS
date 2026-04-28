@@ -111,4 +111,13 @@ For production, modify:
 
 ---
 
-**🎯 All features are now working with real AI generation and proper rate limiting!**
+## Backend startup
+
+python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+
+or
+
+LLM_USE_MOCK=false python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+
+check if running:
+curl http://127.0.0.1:8000/health

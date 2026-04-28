@@ -4,36 +4,7 @@
 }
 
 .bg-glow {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: -1;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-.bg-glow::before {
-  content: '';
-  position: absolute;
-  top: -10%;
-  left: -10%;
-  width: 40%;
-  height: 40%;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
-  filter: blur(80px);
-}
-
-.bg-glow::after {
-  content: '';
-  position: absolute;
-  bottom: -10%;
-  right: -10%;
-  width: 40%;
-  height: 40%;
-  background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%);
-  filter: blur(80px);
+  display: none;
 }
 
 @keyframes spin {
@@ -46,5 +17,5 @@
 }
 
 main {
-  padding-top: 2rem;
+  padding-top: 1.5rem;
 }

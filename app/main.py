@@ -5,16 +5,19 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.services.job_fetcher import fetch_jobs
 from app.db.async_client import get_async_client
 from app.core.dependencies import get_current_user_from_request
+from app.core.redis_client import get_redis, close_redis
 
 scheduler = AsyncIOScheduler()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await get_async_client()
+    await get_redis()
     scheduler.add_job(fetch_jobs, trigger='cron', day_of_week='mon', hour=7, minute=45)
     scheduler.start()
     yield
     scheduler.shutdown()
+    await close_redis()
 
 app = FastAPI(lifespan=lifespan)
 

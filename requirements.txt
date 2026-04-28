@@ -9,3 +9,6 @@ python-dotenv
 openai
 requests
 pytest
+redis
+apscheduler
+aiohttp

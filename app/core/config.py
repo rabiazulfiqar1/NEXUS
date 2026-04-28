@@ -19,6 +19,7 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").strip()
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b").strip()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
+REDIS_URL="redis://localhost"
 
 CRON_QUERIES = [
     "software engineering Jobs in Pakistan",
@@ -35,4 +36,5 @@ ALLOWED_FILE_TYPES = ['application/pdf']
 
 MATCH_THRESHOLD = 0.4
 MATCH_COUNT=5
+
 

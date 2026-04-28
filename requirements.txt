@@ -4,9 +4,11 @@ supabase
 pdfplumber
 uvicorn
 python-multipart
+groq
 python-dotenv
 openai
 requests
 pytest
-groq
-httpx
+redis
+apscheduler
+aiohttp

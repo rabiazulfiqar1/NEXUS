@@ -17,8 +17,8 @@ LLM_USE_MOCK = _to_bool(os.getenv("LLM_USE_MOCK"), default=True)
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "mock").strip().lower()
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").strip()
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b").strip()
-GROK_API_KEY = os.getenv("GROQ_API_KEY")
-GROK_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+REDIS_URL="redis://localhost"
 
 CRON_QUERIES = [
     "software engineering Jobs in Pakistan",

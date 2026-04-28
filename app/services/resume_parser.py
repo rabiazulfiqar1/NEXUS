@@ -1,5 +1,5 @@
 import pdfplumber
-from app.core.config import GROK_API_KEY
+from app.core.config import GROQ_API_KEY
 from groq import Groq
 from app.db.database import get_similarity_score
 from app.core.config import SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
@@ -9,7 +9,7 @@ from fastapi import HTTPException
 
 supabase_client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-groq_client = Groq(GROK_API_KEY)
+groq_client = Groq(GROQ_API_KEY)
 
 def extract_text(file_path):
     text = ""
@@ -55,7 +55,10 @@ def extract_skills_with_llm(text: str) -> list[str]:
     return json.loads(response.choices[0].message.content)
 
 def ats_score(user_id, job_id):
-    sim_score = get_similarity_score(user_id, job_id)
+    sim_response  = get_similarity_score(user_id, job_id)
+    sim_score = sim_response.data if sim_response and sim_response.data else 0.0
+    if isinstance(sim_score, list):
+        sim_score = sim_score[0] if sim_score else 0.0
     user_response = supabase_client.table("user_profiles").select("resume_text", "skills").eq("id", user_id).execute()
     if not user_response.data:
         raise HTTPException(status_code=404, detail="User not found")
@@ -74,6 +77,6 @@ def ats_score(user_id, job_id):
     
     intersection = user_skills & reqs
     skill_score = len(intersection) / len(reqs) if reqs else 0
-    return 0.6*sim_score + 0.4*skill_score
+    return round(0.6 * sim_score + 0.4 * skill_score, 4)
 
     

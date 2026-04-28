@@ -3,6 +3,7 @@ import re
 import requests
 from fastapi import HTTPException, status
 from openai import OpenAI
+from groq import Groq
 from app.core.config import (
     OPENAI_API_KEY,
     OPENAI_MODEL,
@@ -10,6 +11,8 @@ from app.core.config import (
     LLM_PROVIDER,
     OLLAMA_BASE_URL,
     OLLAMA_MODEL,
+    GROQ_API_KEY,
+    GROQ_MODEL,
 )
 
 
@@ -149,6 +152,27 @@ def _call_ollama(prompt: str) -> str:
         ) from exc
 
 
+def _call_groq(prompt: str) -> str:
+    if not GROQ_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="GROQ_API_KEY is missing.",
+        )
+    try:
+        client = Groq(api_key=GROQ_API_KEY)
+        completion = client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+        )
+        return completion.choices[0].message.content or ""
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Groq request failed: {str(exc)}",
+        ) from exc
+
+
 def _call_llm(prompt: str) -> tuple[str, str]:
     use_mock = LLM_USE_MOCK or LLM_PROVIDER == "mock"
     if use_mock:
@@ -157,9 +181,11 @@ def _call_llm(prompt: str) -> tuple[str, str]:
         return "openai", _call_openai(prompt)
     if LLM_PROVIDER == "ollama":
         return "ollama", _call_ollama(prompt)
+    if LLM_PROVIDER == "groq":
+        return "groq", _call_groq(prompt)
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail="Invalid LLM_PROVIDER. Use one of: mock, ollama, openai.",
+        detail="Invalid LLM_PROVIDER. Use one of: mock, ollama, openai, groq.",
     )
 
 

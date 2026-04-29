@@ -1,23 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { Sparkles, Loader2, Search, LogOut, User, Plus, X, FileText, Briefcase, UserCircle } from 'lucide-react';
-import { resumeApi, ResumeEnhanceResponse, CVGenerateResponse } from '../../services/api';
+import React, { useState, useEffect, useRef } from 'react';
+import { Sparkles, Loader2, Search, LogOut, User, Plus, X, FileText, Briefcase, UserCircle, TrendingUp, ClipboardList } from 'lucide-react';
+import { resumeApi, ResumeEnhanceResponse, CVGenerateResponse, CareerAnalyzeResponse } from '../../services/api';
 import ResultsView from './ResultsView';
 import ResumeUpload from './ResumeUpload';
 import JobsView from '../Jobs/Jobs';
+import JobTracker from '../Jobs/JobTracker';
+import CareerAnalysisView from '../Career/CareerAnalysisView';
+import CareerLoadingView from '../Career/CareerLoadingView';
 import { supabase } from '../../services/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ResumeTools: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'resume' | 'cv' | 'jobs'>('resume');
+  const [activeTab, setActiveTab] = useState<'resume' | 'cv' | 'career' | 'jobs' | 'tracker'>('resume');
   const [targetRole, setTargetRole] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ResumeEnhanceResponse | CVGenerateResponse | null>(null);
+  const [careerResult, setCareerResult] = useState<CareerAnalyzeResponse | null>(null);
   const [error, setError] = useState('');
+  const [recommendedJobs, setRecommendedJobs] = useState<any[]>([]);
+  const careerPollRef = useRef<number | null>(null);
   
   // Profile state for dynamic editing
   const [profile, setProfile] = useState<any>({
     full_name: '',
-    email: '',
     linkedin_url: '',
     github_url: '',
     skills: []
@@ -25,10 +30,24 @@ const ResumeTools: React.FC = () => {
   const [newSkill, setNewSkill] = useState('');
 
   
+  const clearCareerPoll = () => {
+    if (careerPollRef.current) {
+      clearTimeout(careerPollRef.current);
+      careerPollRef.current = null;
+    }
+  };
+
   useEffect(() => {
     resumeApi.getProfile().then(data => {
       if (data) setProfile(data);
     }).catch(() => {});
+
+    // Pre-fetch recommended jobs for the tracker
+    resumeApi.getJobs().then(data => {
+      setRecommendedJobs(data || []);
+    }).catch(() => {});
+
+    return () => clearCareerPoll();
   }, []);
 
   // Sync profile to backend on change
@@ -51,6 +70,7 @@ const ResumeTools: React.FC = () => {
 
     setLoading(true);
     setError('');
+    setCareerResult(null);
     try {
       const data = await resumeApi.enhance({ target_role: targetRole });
       setResult(data);
@@ -76,6 +96,7 @@ const ResumeTools: React.FC = () => {
 
     setLoading(true);
     setError('');
+    setCareerResult(null);
     try {
       const data = await resumeApi.generateCV({ target_role: targetRole });
       setResult(data);
@@ -92,6 +113,77 @@ const ResumeTools: React.FC = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCareerAnalyze = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetRole) return;
+
+    setLoading(true);
+    setError('');
+    setResult(null);
+    setCareerResult(null);
+    clearCareerPoll();
+    try {
+      const start = await resumeApi.careerAnalyze(targetRole);
+      const pollStatus = async () => {
+        try {
+          const status = await resumeApi.careerAnalyzeStatus(start.job_id);
+          if (status.status === 'completed' && status.result) {
+            setCareerResult(status.result);
+            setLoading(false);
+            clearCareerPoll();
+            return;
+          }
+          if (status.status === 'failed') {
+            setError(status.error || 'Career analysis failed.');
+            setLoading(false);
+            clearCareerPoll();
+            return;
+          }
+          careerPollRef.current = window.setTimeout(pollStatus, 10000);
+        } catch (pollErr) {
+          setError('Failed to check career analysis status.');
+          setLoading(false);
+          clearCareerPoll();
+        }
+      };
+      pollStatus();
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        setError('Authentication required. Please log in to run career analysis.');
+      } else if (err.response?.status === 429) {
+        setError('Rate limit exceeded. Please try again later.');
+      } else if (err.response?.status === 404) {
+        setError('No profile found. Please upload your resume first.');
+      } else {
+        const msg = err.response?.data?.detail || err.message || 'Failed to run career analysis.';
+        setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      }
+      setLoading(false);
+    }
+  };
+
+  const handleCareerPdfDownload = async () => {
+    try {
+      const pdfBlob = await resumeApi.exportCareerCV();
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `career_cv_${targetRole ? targetRole.replace(/\s+/g, '_') : 'latest'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      if (err.response?.status === 404) {
+        setError('No CV found. Run career analysis first.');
+      } else if (err.response?.status === 401) {
+        setError('Authentication required. Please log in to download your CV.');
+      } else {
+        setError('Failed to download CV PDF.');
+      }
     }
   };
 
@@ -143,6 +235,20 @@ const ResumeTools: React.FC = () => {
           >
             <Briefcase size={18} /> Matching Jobs
           </button>
+          <button
+            onClick={() => setActiveTab('career')}
+            className={`tab-button ${activeTab === 'career' ? 'active' : ''}`}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: '8px', border: '1px solid var(--border-glass)', background: activeTab === 'career' ? 'var(--primary)' : 'transparent', color: activeTab === 'career' ? 'white' : 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.3s ease' }}
+          >
+            <TrendingUp size={18} /> Career Analysis
+          </button>
+          <button
+            onClick={() => setActiveTab('tracker')}
+            className={`tab-button ${activeTab === 'tracker' ? 'active' : ''}`}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1.5rem', borderRadius: '8px', border: '1px solid var(--border-glass)', background: activeTab === 'tracker' ? 'var(--primary)' : 'transparent', color: activeTab === 'tracker' ? 'white' : 'var(--text-secondary)', cursor: 'pointer', transition: 'all 0.3s ease' }}
+          >
+            <ClipboardList size={18} /> Job Tracker
+          </button>
         </div>
       </header>
 
@@ -164,15 +270,6 @@ const ResumeTools: React.FC = () => {
                   value={profile.full_name} 
                   onChange={e => setProfile({...profile, full_name: e.target.value})}
                   placeholder="Your Name"
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Email</label>
-                <input 
-                  className="input-field" 
-                  value={profile.email} 
-                  onChange={e => setProfile({...profile, email: e.target.value})}
-                  placeholder="email@example.com"
                 />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
@@ -274,8 +371,68 @@ const ResumeTools: React.FC = () => {
             <JobsView />
           )}
 
+          {activeTab === 'tracker' && (
+            <JobTracker availableJobs={recommendedJobs} />
+          )}
+
+          {activeTab === 'career' && (
+            <>
+              {!loading && !careerResult && (
+                <div className="glass-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
+                  <form onSubmit={handleCareerAnalyze} style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                        Target Career Goal
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <Search size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+                        <input
+                          type="text"
+                          className="input-field"
+                          placeholder="e.g., ML Engineer, Backend Developer..."
+                          value={targetRole}
+                          onChange={(e) => setTargetRole(e.target.value)}
+                          style={{ paddingLeft: '3rem' }}
+                        />
+                      </div>
+                    </div>
+                    <button type="submit" className="btn-primary" disabled={loading || !targetRole} style={{ height: '48px' }}>
+                      <TrendingUp size={20} />
+                      Run Analysis
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              <AnimatePresence mode="wait">
+                {loading && activeTab === 'career' && (
+                  <CareerLoadingView key="career-loading" />
+                )}
+              </AnimatePresence>
+
+              {careerResult && !loading && (
+                <>
+                  <CareerAnalysisView
+                    data={careerResult}
+                    targetRole={targetRole}
+                    onDownloadPdf={handleCareerPdfDownload}
+                  />
+                  <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                    <button
+                      className="btn-primary"
+                      onClick={() => { setCareerResult(null); }}
+                      style={{ fontSize: '0.85rem' }}
+                    >
+                      ← New Analysis
+                    </button>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
           <AnimatePresence>
-            {result && activeTab !== 'jobs' && (
+            {result && activeTab !== 'jobs' && activeTab !== 'career' && activeTab !== 'tracker' && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -285,7 +442,7 @@ const ResumeTools: React.FC = () => {
             )}
           </AnimatePresence>
           
-          {error && activeTab !== 'jobs' && (
+          {error && activeTab !== 'jobs' && activeTab !== 'tracker' && (
             <p style={{ color: '#ef4444', textAlign: 'center', marginTop: '1rem' }}>{error}</p>
           )}
         </section>

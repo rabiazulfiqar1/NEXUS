@@ -37,7 +37,7 @@ const ResumePaper: React.FC<ResumePaperProps> = ({ name, role, summary, bullets,
       {/* Skills */}
       <section className="resume-section">
         <h3 className="section-heading">Skills</h3>
-        <p className="skills-list">{skills.length > 0 ? skills.join(' • ') : 'Skills will appear here...'}</p>
+        <p className="skills-list">{skills && skills.length > 0 ? skills.join(' • ') : 'Skills will appear here...'}</p>
       </section>
 
       {/* Experience */}

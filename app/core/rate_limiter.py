@@ -4,11 +4,20 @@ from app.core.redis_client import get_redis
 import uuid
 
 # Per-route limits: (max_requests, window_seconds)
+# RATE_LIMITS = {
+#     "resume_enhance":  (5,  3600),   # 5/hour
+#     "cv_generate":     (5,  3600),   # 5/hour
+#     "ats_score":       (20, 3600),   # 20/hour
+#     "jobs_list":       (60, 3600),   # 60/hour
+#     "career_analyze":  (3,  3600),
+# }
+
 RATE_LIMITS = {
-    "resume_enhance":  (5,  3600),   # 5/hour
-    "cv_generate":     (5,  3600),   # 5/hour
-    "ats_score":       (20, 3600),   # 20/hour
-    "jobs_list":       (60, 3600),   # 60/hour
+    "resume_enhance":  (50, 3600),   # was 5
+    "cv_generate":     (50, 3600),   # was 5
+    "ats_score":       (100, 3600),  # was 20
+    "jobs_list":       (200, 3600),  # was 60
+    "career_analyze":  (30, 3600),   # was 3
 }
 
 def _get_identifier(request: Request) -> str:

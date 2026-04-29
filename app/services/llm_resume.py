@@ -7,12 +7,15 @@ from groq import Groq
 from app.core.config import (
     OPENAI_API_KEY,
     OPENAI_MODEL,
-    LLM_USE_MOCK,
+    # LLM_USE_MOCK,
     LLM_PROVIDER,
     OLLAMA_BASE_URL,
     OLLAMA_MODEL,
     GROQ_API_KEY,
     GROQ_MODEL,
+    OPENROUTER_API_KEY,
+    OPENROUTER_BASE_URL,
+    OPENROUTER_MODEL,
 )
 
 
@@ -152,6 +155,27 @@ def _call_ollama(prompt: str) -> str:
         ) from exc
 
 
+def _call_openrouter(prompt: str) -> str:
+    if not OPENROUTER_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="OPENROUTER_API_KEY is missing.",
+        )
+    try:
+        client = OpenAI(api_key=OPENROUTER_API_KEY, base_url=OPENROUTER_BASE_URL)
+        completion = client.chat.completions.create(
+            model=OPENROUTER_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+        )
+        return completion.choices[0].message.content or ""
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="OpenRouter request failed.",
+        ) from exc
+
+
 def _call_groq(prompt: str) -> str:
     if not GROQ_API_KEY:
         raise HTTPException(
@@ -174,15 +198,18 @@ def _call_groq(prompt: str) -> str:
 
 
 def _call_llm(prompt: str) -> tuple[str, str]:
-    use_mock = LLM_USE_MOCK or LLM_PROVIDER == "mock"
-    if use_mock:
-        return "mock", ""
-    if LLM_PROVIDER == "openai":
-        return "openai", _call_openai(prompt)
-    if LLM_PROVIDER == "ollama":
-        return "ollama", _call_ollama(prompt)
+    # use_mock = LLM_USE_MOCK or LLM_PROVIDER == "mock"
+    # if use_mock:
+    #     return "mock", ""
+    # if LLM_PROVIDER == "openai":
+    #     return "openai", _call_openai(prompt)
+    # if LLM_PROVIDER == "ollama":
+    #     return "ollama", _call_ollama(prompt)
     if LLM_PROVIDER == "groq":
-        return "groq", _call_groq(prompt)
+        try:
+            return "groq", _call_groq(prompt)
+        except HTTPException:
+            return "openrouter", _call_openrouter(prompt)
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         detail="Invalid LLM_PROVIDER. Use one of: mock, ollama, openai, groq.",

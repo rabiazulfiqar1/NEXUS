@@ -4,15 +4,15 @@ from typing import List
 from uuid import UUID
 
 class UserBase(BaseModel):
-    full_name: str
-    email: str | None = None
+    full_name: str | None = None
     linkedin_url: str | None = None
     github_url: str | None = None
     skills: List[str] = Field(default_factory=list)
-    degree: str | None
-    graduation_year: int | None
+    degree: str | None = None
+    graduation_year: int | None = None
     experience: List[dict] = Field(default_factory=list)
     projects: List[dict] = Field(default_factory=list)
+    experience_years: int | None = None
 
 class UserCreate(UserBase):
     pass
@@ -20,7 +20,10 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
-    user_id: UUID
-    resume_text: str | None
-    created_at: datetime 
+    id: UUID
+    email: str | None = None
+    resume_text: str | None = None
+    is_embed: bool | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 

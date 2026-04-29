@@ -3,6 +3,7 @@ from app.schemas.job import JobCreate
 from datetime import datetime
 from app.db.database import add_jobs, embed_jobs
 import aiohttp
+import asyncio
 
 JOB_SEARCH_URL="https://jsearch.p.rapidapi.com/search"
 BASE_PARAMETERS = {
@@ -41,5 +42,10 @@ async def fetch_jobs():
             except Exception as e:
                 print(f"Failed for query: '{query}': {e}")
                 continue
-    add_jobs(job_list)
-    embed_jobs(job_list)
+
+    job_list = list({job.url: job for job in job_list}.values())
+    await add_jobs(job_list)
+    await embed_jobs(job_list)
+
+if __name__ == "__main__":
+    asyncio.run(fetch_jobs())

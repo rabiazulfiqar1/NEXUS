@@ -58,6 +58,7 @@ async def create_profile_manual(
         add_profile_embedding(profile_text, user.id),
     )
     return {"message": "User profile created successfully"}
+
 @router.delete("/profile/resume")
 async def delete_profile_resume(
     user: dict = Depends(get_current_user)
@@ -73,7 +74,9 @@ async def get_user_profile(
     user: dict = Depends(get_current_user)
 ):
     async_client = await _get_async_client()
-    result = await async_client.table("user_profiles").select("*").eq("id", user.id).execute()
-    if result.data:
-        return result.data[0]
-    return {}
+    result = await async_client.table("user_profiles_with_email") \
+        .select("*") \
+        .eq("id", user.id) \
+        .single() \
+        .execute()
+    return result.data or {}

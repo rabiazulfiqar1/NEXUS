@@ -1,4 +1,3 @@
-# app/db/database.py
 from supabase._async.client import AsyncClient
 from app.db.async_client import get_async_client
 from app.schemas.job import JobCreate
@@ -41,7 +40,6 @@ async def embed_jobs(job_list: list[JobCreate]) -> None:
     client = await _get_client()
     await asyncio.gather(*[_embed_single_job(client, job) for job in job_list])
 
-
 # ── User profiles ─────────────────────────────────────────────────────────────
 
 async def add_resume(resume_text: str, user_id: str) -> None:
@@ -54,7 +52,12 @@ async def add_resume(resume_text: str, user_id: str) -> None:
 
 async def add_user_profile(user_profile: dict) -> None:
     client = await _get_client()
-    await client.table("user_profiles").insert(user_profile).execute()
+
+    user_profile.pop("email", None)
+
+    await client.table("user_profiles") \
+        .upsert(user_profile, on_conflict="id") \
+        .execute()
 
 
 async def add_profile_embedding(text: str, user_id: str) -> None:
@@ -108,7 +111,10 @@ async def get_similarity_score(user_id: str, job_id) -> float:
 async def get_user_profile_data(user_id: str) -> dict:
     client = await _get_client()
     result = await client.table("user_profiles") \
-        .select("id, resume_text, skills, degree, graduation_year, experience") \
+        .select(
+            "id, full_name, github_url, linkedin_url, resume_text, skills, degree, "
+            "graduation_year, experience, projects, experience_years"
+        ) \
         .eq("id", user_id) \
         .execute()
     if not result.data:

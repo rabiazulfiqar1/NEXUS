@@ -18,23 +18,29 @@ LLM_PROVIDER = os.getenv("LLM_PROVIDER", "mock").strip().lower()
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").strip()
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b").strip()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
-REDIS_URL="redis://localhost"
+GROQ_MODEL = os.getenv("GROQ_MODEL").strip()
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1").strip()
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct").strip()
+REDIS_URL = "redis://127.0.0.1:6379"
+CREW_STORAGE_DIR = os.getenv("CREW_STORAGE_DIR")
+GROQ_MODEL_LARGE=os.getenv("GROQ_MODEL_LARGE", "groq/llama-3.3-70b-versatile")
+TAVILY_API_KEY=os.getenv("TAVILY_API_KEY")
 
 CRON_QUERIES = [
     "software engineering Jobs in Pakistan",
-    # "data science Jobs in Pakistan",
-    # "machine learning Jobs in Pakistan",
-    # "backend developer Jobs in Pakistan",
-    # "frontend developer Jobs in Pakistan",
-    # "cybersecurity Jobs in Pakistan",
+    "data science Jobs in Pakistan",
+    "machine learning Jobs in Pakistan",
+    "backend developer Jobs in Pakistan",
+    "frontend developer Jobs in Pakistan",
+    "cybersecurity Jobs in Pakistan",
 ]
 COUNTRY="pk"
 EMPLOYMENT_TYPES="PARTTIME,INTERN"
 
 ALLOWED_FILE_TYPES = ['application/pdf']
 
-MATCH_THRESHOLD = 0.4
+MATCH_THRESHOLD = 0.1
 MATCH_COUNT=5
 
 

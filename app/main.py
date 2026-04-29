@@ -7,6 +7,7 @@ from app.services.job_fetcher import fetch_jobs
 from app.db.async_client import get_async_client
 from app.core.dependencies import get_current_user_from_request
 from app.core.redis_client import get_redis, close_redis
+from app.routers import career
 
 scheduler = AsyncIOScheduler()
 
@@ -40,6 +41,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(career.router, prefix="/api/v1", tags=["career"])
 app.include_router(users.router, prefix="/api/v1", tags=["users"])
 app.include_router(jobs.router, prefix="/api/v1", tags=["jobs"])
 app.include_router(resume_tools.router, prefix="/api/v1", tags=["resume-tools"])

@@ -56,3 +56,10 @@ htmlcov/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Vulnerable testing files
+user_test.py
+
+# Docs for reference
+*.pdf
+# SETUP.md

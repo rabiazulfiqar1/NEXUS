@@ -1,0 +1,21 @@
+.App {
+  min-height: 100vh;
+  position: relative;
+}
+
+.bg-glow {
+  display: none;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+main {
+  padding-top: 1.5rem;
+}

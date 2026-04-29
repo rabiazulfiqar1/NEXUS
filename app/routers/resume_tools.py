@@ -29,14 +29,21 @@ async def enhance_user_resume(
     user: dict = Depends(get_current_user),
     _: None = Depends(rate_limit("resume_enhance")),
 ):
-    profile = await get_user_profile_data(user.id)
-    resume_text = _build_profile_text(profile)
-    if not resume_text:
-        raise HTTPException(status_code=400, detail="No usable profile data found.")
-    # LLM calls are blocking — offload to thread pool
-    return await asyncio.get_event_loop().run_in_executor(
-        None, enhance_resume, resume_text, payload.target_role
-    )
+    try:
+        profile = await get_user_profile_data(user.id)
+        resume_text = _build_profile_text(profile)
+        if not resume_text:
+            raise HTTPException(status_code=400, detail="No usable profile data found.")
+        # LLM calls are blocking — offload to thread pool
+        result = await asyncio.get_event_loop().run_in_executor(
+            None, enhance_resume, resume_text, payload.target_role
+        )
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in enhance_user_resume: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.post("/cv/generate", response_model=CVGenerateResponse)
@@ -46,10 +53,17 @@ async def generate_user_cv(
     user: dict = Depends(get_current_user),
     _: None = Depends(rate_limit("cv_generate")),
 ):
-    profile = await get_user_profile_data(user.id)
-    profile_text = _build_profile_text(profile)
-    if not profile_text:
-        raise HTTPException(status_code=400, detail="No usable profile data found.")
-    return await asyncio.get_event_loop().run_in_executor(
-        None, generate_cv, profile_text, payload.target_role
-    )
+    try:
+        profile = await get_user_profile_data(user.id)
+        profile_text = _build_profile_text(profile)
+        if not profile_text:
+            raise HTTPException(status_code=400, detail="No usable profile data found.")
+        result = await asyncio.get_event_loop().run_in_executor(
+            None, generate_cv, profile_text, payload.target_role
+        )
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error in generate_user_cv: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")

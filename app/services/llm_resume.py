@@ -3,13 +3,19 @@ import re
 import requests
 from fastapi import HTTPException, status
 from openai import OpenAI
+from groq import Groq
 from app.core.config import (
     OPENAI_API_KEY,
     OPENAI_MODEL,
-    LLM_USE_MOCK,
+    # LLM_USE_MOCK,
     LLM_PROVIDER,
     OLLAMA_BASE_URL,
     OLLAMA_MODEL,
+    GROQ_API_KEY,
+    GROQ_MODEL,
+    OPENROUTER_API_KEY,
+    OPENROUTER_BASE_URL,
+    OPENROUTER_MODEL,
 )
 
 
@@ -149,32 +155,105 @@ def _call_ollama(prompt: str) -> str:
         ) from exc
 
 
+def _call_openrouter(prompt: str) -> str:
+    if not OPENROUTER_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="OPENROUTER_API_KEY is missing.",
+        )
+    try:
+        client = OpenAI(api_key=OPENROUTER_API_KEY, base_url=OPENROUTER_BASE_URL)
+        completion = client.chat.completions.create(
+            model=OPENROUTER_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+        )
+        return completion.choices[0].message.content or ""
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="OpenRouter request failed.",
+        ) from exc
+
+
+def _call_groq(prompt: str) -> str:
+    if not GROQ_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="GROQ_API_KEY is missing.",
+        )
+    try:
+        client = Groq(api_key=GROQ_API_KEY)
+        completion = client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"},
+        )
+        return completion.choices[0].message.content or ""
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Groq request failed: {str(exc)}",
+        ) from exc
+
+
 def _call_llm(prompt: str) -> tuple[str, str]:
-    use_mock = LLM_USE_MOCK or LLM_PROVIDER == "mock"
-    if use_mock:
-        return "mock", ""
-    if LLM_PROVIDER == "openai":
-        return "openai", _call_openai(prompt)
-    if LLM_PROVIDER == "ollama":
-        return "ollama", _call_ollama(prompt)
+    # use_mock = LLM_USE_MOCK or LLM_PROVIDER == "mock"
+    # if use_mock:
+    #     return "mock", ""
+    # if LLM_PROVIDER == "openai":
+    #     return "openai", _call_openai(prompt)
+    # if LLM_PROVIDER == "ollama":
+    #     return "ollama", _call_ollama(prompt)
+    if LLM_PROVIDER == "groq":
+        try:
+            return "groq", _call_groq(prompt)
+        except HTTPException:
+            return "openrouter", _call_openrouter(prompt)
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail="Invalid LLM_PROVIDER. Use one of: mock, ollama, openai.",
+        detail="Invalid LLM_PROVIDER. Use one of: mock, ollama, openai, groq.",
     )
 
 
-def enhance_resume(resume_text: str, target_role: str) -> dict:
+def enhance_resume(resume_text: str, target_role: str, profile: dict = None) -> dict:
+    # Extract user data from profile
+    user_info = ""
+    if profile:
+        degree = profile.get("degree", "")
+        graduation_year = profile.get("graduation_year", "")
+        experience = profile.get("experience", [])
+        projects = profile.get("projects", [])
+        
+        user_info = f"""
+User Profile Data:
+- Degree: {degree}
+- Graduation Year: {graduation_year}
+- Experience: {experience}
+- Projects: {projects}
+"""
+    
     prompt = f"""
-You are a resume optimization assistant.
-Target role: {target_role}
-Resume text:
+You are a resume optimization assistant for the target role: {target_role}
+
+{user_info}
+
+Original Resume Text:
 {resume_text}
 
+Instructions:
+1. Use the user's actual degree, graduation year, experience, and projects from the profile data
+2. Enhance the resume specifically for the {target_role} role
+3. Change any "CORE COMPETENCIES & SKILLS" sections to just "SKILLS"
+4. Provide improved bullet points that highlight relevant achievements
+5. Identify missing keywords that are important for {target_role} roles
+6. Suggest specific next steps to strengthen the resume
+
 Return strict JSON with keys:
-- summary (string)
-- improved_bullets (array of strings)
-- missing_keywords (array of strings)
-- next_steps (array of strings)
+- summary (string) - Professional summary optimized for {target_role}
+- improved_bullets (array of strings) - Enhanced bullet points using user's actual experience
+- missing_keywords (array of strings) - Key skills missing for {target_role}
+- next_steps (array of strings) - Actionable improvement suggestions
 """
     mode, llm_text = _call_llm(prompt)
     if mode == "mock":

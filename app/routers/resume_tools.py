@@ -10,6 +10,7 @@ from app.schemas.llm_resume import (
 from app.services.llm_resume import enhance_resume, generate_cv
 from app.services.resume_parser import build_user_embedding_text
 import asyncio
+import inspect
 from app.core.rate_limiter import rate_limit
 
 router = APIRouter()
@@ -30,7 +31,9 @@ async def enhance_user_resume(
     _: None = Depends(rate_limit("resume_enhance")),
 ):
     try:
-        profile = await get_user_profile_data(user.id)
+        profile = get_user_profile_data(user.id)
+        if inspect.isawaitable(profile):
+            profile = await profile
         resume_text = _build_profile_text(profile)
         if not resume_text:
             raise HTTPException(status_code=400, detail="No usable profile data found.")
@@ -54,7 +57,9 @@ async def generate_user_cv(
     _: None = Depends(rate_limit("cv_generate")),
 ):
     try:
-        profile = await get_user_profile_data(user.id)
+        profile = get_user_profile_data(user.id)
+        if inspect.isawaitable(profile):
+            profile = await profile
         profile_text = _build_profile_text(profile)
         if not profile_text:
             raise HTTPException(status_code=400, detail="No usable profile data found.")

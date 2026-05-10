@@ -7,6 +7,7 @@ from app.services.crew.tasks import GeneratedCV
 from app.db.async_client import get_async_client
 from app.services.cv_exporter import export_cv_to_pdf
 from fastapi.responses import Response
+from supabase._async.client import AsyncClient
 import asyncio
 
 router = APIRouter()
@@ -49,8 +50,10 @@ async def analyze_career(
 
 
 @router.get("/career/cv/latest", response_model=GeneratedCV)
-async def get_latest_cv(user: dict = Depends(get_current_user)):
-    client = await get_async_client()
+async def get_latest_cv(
+    user: dict = Depends(get_current_user),
+    client: AsyncClient = Depends(get_async_client),
+):
     result = await client.table("career_reports") \
         .select("report, target_role, created_at") \
         .eq("user_id", str(user.id)) \
@@ -66,8 +69,10 @@ async def get_latest_cv(user: dict = Depends(get_current_user)):
 
 
 @router.get("/career/cv/export")
-async def export_cv(user: dict = Depends(get_current_user)):
-    client = await get_async_client()
+async def export_cv(
+    user: dict = Depends(get_current_user),
+    client: AsyncClient = Depends(get_async_client),
+):
     result = await client.table("career_reports") \
         .select("report") \
         .eq("user_id", str(user.id)) \

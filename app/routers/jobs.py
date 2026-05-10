@@ -12,11 +12,11 @@ async def get_user_similarity_jobs(user: dict = Depends(get_current_user)):
     return await get_jobs(user.id)
 
 @router.get("/jobs/{job_id}/ats-score")
-def get_ats_score(
+async def get_ats_score(
     request: Request,
     job_id: UUID, 
     user: dict = Depends(get_current_user),
     _: None = Depends(rate_limit("ats_score")),
 ):
-    result = ats_score(user.id, job_id)
+    result = await ats_score(user.id, job_id)
     return {"job_id": str(job_id), "ats_score": result}

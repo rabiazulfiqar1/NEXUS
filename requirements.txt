@@ -12,3 +12,5 @@ pytest
 redis
 apscheduler
 aiohttp
+crewai
+reportlab

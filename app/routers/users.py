@@ -13,9 +13,6 @@ import asyncio
 
 client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-async def _get_async_client() -> AsyncClient:
-    return await get_async_client()
-
 router = APIRouter()
 
 @router.post("/profile/resume", status_code=201)
@@ -61,9 +58,9 @@ async def create_profile_manual(
 
 @router.delete("/profile/resume")
 async def delete_profile_resume(
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(get_current_user),
+    async_client: AsyncClient = Depends(get_async_client),
 ):
-    async_client = await _get_async_client()
     await async_client.table("user_profiles").update({
         "resume_text": None
     }).eq("id", user.id).execute()
@@ -71,9 +68,9 @@ async def delete_profile_resume(
 
 @router.get("/profile")
 async def get_user_profile(
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(get_current_user),
+    async_client: AsyncClient = Depends(get_async_client),
 ):
-    async_client = await _get_async_client()
     result = await async_client.table("user_profiles_with_email") \
         .select("*") \
         .eq("id", user.id) \

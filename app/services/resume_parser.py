@@ -3,6 +3,7 @@ import pdfplumber
 from fastapi import HTTPException
 from groq import Groq
 from openai import OpenAI
+import inspect
 from app.core.config import (
     GROQ_API_KEY,
     OPENROUTER_API_KEY,
@@ -99,13 +100,19 @@ def extract_skills_with_llm(text: str) -> list[str]:
 
     return [skill for skill in mock_skills if skill.lower() in text.lower()] or mock_skills[:3]
 
+
+async def _resolve(value):
+    if inspect.isawaitable(value):
+        return await value
+    return value
+
 async def ats_score(user_id: str, job_id: str) -> float:
     sim_score = await get_similarity_score(user_id, job_id)
 
-    user_response = supabase_client.table("user_profiles") \
+    user_response = await _resolve(supabase_client.table("user_profiles") \
         .select("resume_text", "skills") \
         .eq("id", user_id) \
-        .execute()
+        .execute())
     
     if not user_response.data:
         raise HTTPException(status_code=404, detail="User not found")
@@ -117,10 +124,10 @@ async def ats_score(user_id: str, job_id: str) -> float:
         user_skills = extract_skills_with_llm(user_data["resume_text"])
     user_skills = set(s.lower() for s in user_skills)
 
-    job_response = supabase_client.table("job_listings") \
+    job_response = await _resolve(supabase_client.table("job_listings") \
         .select("description") \
         .eq("id", job_id) \
-        .execute()
+        .execute())
     
     if not job_response.data or not job_response.data[0]["description"]:
         return sim_score

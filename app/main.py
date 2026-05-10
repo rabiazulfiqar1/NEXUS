@@ -14,7 +14,7 @@ scheduler = AsyncIOScheduler()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await get_async_client()
-    await get_redis()
+    # await get_redis()
     scheduler.add_job(fetch_jobs, trigger='cron', day_of_week='mon', hour=7, minute=45)
     scheduler.start()
     yield

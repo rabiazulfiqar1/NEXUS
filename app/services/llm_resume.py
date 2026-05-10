@@ -7,7 +7,7 @@ from groq import Groq
 from app.core.config import (
     OPENAI_API_KEY,
     OPENAI_MODEL,
-    # LLM_USE_MOCK,
+    LLM_USE_MOCK,
     LLM_PROVIDER,
     OLLAMA_BASE_URL,
     OLLAMA_MODEL,
@@ -198,13 +198,9 @@ def _call_groq(prompt: str) -> str:
 
 
 def _call_llm(prompt: str) -> tuple[str, str]:
-    # use_mock = LLM_USE_MOCK or LLM_PROVIDER == "mock"
-    # if use_mock:
-    #     return "mock", ""
-    # if LLM_PROVIDER == "openai":
-    #     return "openai", _call_openai(prompt)
-    # if LLM_PROVIDER == "ollama":
-    #     return "ollama", _call_ollama(prompt)
+    use_mock = LLM_USE_MOCK or LLM_PROVIDER == "mock"
+    if use_mock:
+        return "mock", ""
     if LLM_PROVIDER == "groq":
         try:
             return "groq", _call_groq(prompt)

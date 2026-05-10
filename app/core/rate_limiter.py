@@ -38,8 +38,15 @@ async def check_rate_limit(key: str, max_requests: int, window: int, request: Re
       2. Add current timestamp
       3. Count remaining entries
       4. Reject if count exceeds limit
+    
+    If Redis is unavailable, rate limiting is skipped.
     """
     redis = await get_redis()
+    
+    # If Redis is not available, skip rate limiting
+    if redis is None:
+        return
+    
     identifier = _get_identifier(request)
     redis_key = f"rate_limit:{key}:{identifier}"
     current_time = int(time.time())
